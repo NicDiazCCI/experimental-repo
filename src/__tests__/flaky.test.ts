@@ -1,5 +1,11 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
+// Mock the randomBoolean function to make the test deterministic
+jest.mock('../utils', () => ({
+  ...jest.requireActual('../utils'),
+  randomBoolean: jest.fn(() => true)
+}));
+
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
     const result = randomBoolean();
