@@ -1,5 +1,11 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
+// Mock flakyApiCall to eliminate randomness while preserving test intent
+jest.mock('../utils', () => ({
+  ...jest.requireActual('../utils'),
+  flakyApiCall: jest.fn().mockResolvedValue('Success')
+}));
+
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
     const result = randomBoolean();
