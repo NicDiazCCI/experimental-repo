@@ -2,8 +2,13 @@ import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../ut
 
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
+    const originalRandom = Math.random;
+    Math.random = jest.fn(() => 0.6);
+    
     const result = randomBoolean();
     expect(result).toBe(true);
+    
+    Math.random = originalRandom;
   });
 
   test('unstable counter should equal exactly 10', () => {
