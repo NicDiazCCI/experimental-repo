@@ -26,11 +26,17 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('multiple random conditions', () => {
+    // Mock Math.random to return deterministic value > 0.3 for all conditions
+    const mockRandom = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
     
     expect(condition1 && condition2 && condition3).toBe(true);
+    
+    // Restore original Math.random
+    mockRandom.mockRestore();
   });
 
   test('date-based flakiness', () => {
