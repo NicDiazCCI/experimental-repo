@@ -12,8 +12,15 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
-    expect(result).toBe('Success');
+    const originalRandom = Math.random;
+    Math.random = jest.fn().mockReturnValue(0.5);
+    
+    try {
+      const result = await flakyApiCall();
+      expect(result).toBe('Success');
+    } finally {
+      Math.random = originalRandom;
+    }
   });
 
   test('timing-based test with race condition', async () => {
