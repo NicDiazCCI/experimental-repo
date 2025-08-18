@@ -22,7 +22,8 @@ describe('Intentionally Flaky Tests', () => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    expect(duration).toBeLessThan(100);
+    expect(duration).toBeGreaterThanOrEqual(50);
+    expect(duration).toBeLessThan(200);
   });
 
   test('multiple random conditions', () => {
