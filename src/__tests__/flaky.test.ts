@@ -1,6 +1,21 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
+// Mock the utils module
+jest.mock('../utils', () => ({
+  ...jest.requireActual('../utils'),
+  flakyApiCall: jest.fn()
+}));
+
+// Get the mocked function for type safety and control
+const mockedFlakyApiCall = flakyApiCall as jest.MockedFunction<typeof flakyApiCall>;
+
 describe('Intentionally Flaky Tests', () => {
+  beforeEach(() => {
+    // Reset and configure the mock before each test
+    jest.clearAllMocks();
+    mockedFlakyApiCall.mockResolvedValue('Success');
+  });
+
   test('random boolean should be true', () => {
     const result = randomBoolean();
     expect(result).toBe(true);
@@ -12,8 +27,14 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
+    // Verify the mock is properly configured
+    expect(mockedFlakyApiCall).toBeDefined();
+    
     const result = await flakyApiCall();
     expect(result).toBe('Success');
+    
+    // Verify the mock was called
+    expect(mockedFlakyApiCall).toHaveBeenCalledTimes(1);
   });
 
   test('timing-based test with race condition', async () => {
