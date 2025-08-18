@@ -17,12 +17,18 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('timing-based test with race condition', async () => {
+    const mockRandomDelay = jest.fn().mockResolvedValue(undefined);
+    const originalRandomDelay = require('../utils').randomDelay;
+    require('../utils').randomDelay = mockRandomDelay;
+    
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    await mockRandomDelay(50, 150);
     const endTime = Date.now();
     const duration = endTime - startTime;
     
     expect(duration).toBeLessThan(100);
+    
+    require('../utils').randomDelay = originalRandomDelay;
   });
 
   test('multiple random conditions', () => {
