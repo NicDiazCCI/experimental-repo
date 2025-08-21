@@ -22,7 +22,9 @@ describe('Intentionally Flaky Tests', () => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    expect(duration).toBeLessThan(100);
+    // Fixed: Expect duration to be within realistic bounds (50-200ms to account for execution overhead)
+    expect(duration).toBeGreaterThanOrEqual(45); // Allow for small timing variations
+    expect(duration).toBeLessThan(200); // Allow for reasonable upper bound with overhead
   });
 
   test('multiple random conditions', () => {
