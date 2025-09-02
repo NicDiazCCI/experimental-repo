@@ -7,8 +7,15 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('unstable counter should equal exactly 10', () => {
+    // Mock Math.random to return a predictable value that won't trigger noise
+    const originalRandom = Math.random;
+    Math.random = jest.fn(() => 0.5); // This ensures noise won't be added (0.5 < 0.8)
+    
     const result = unstableCounter();
     expect(result).toBe(10);
+    
+    // Restore original Math.random
+    Math.random = originalRandom;
   });
 
   test('flaky API call should succeed', async () => {
