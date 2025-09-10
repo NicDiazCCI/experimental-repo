@@ -1,50 +1,50 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
 describe('Intentionally Flaky Tests', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
   test('random boolean should be true', () => {
-    const result = randomBoolean();
-    expect(result).toBe(true);
+    jest.spyOn(Math, 'random').mockReturnValue(0.9);
+    expect(randomBoolean()).toBe(true);
   });
 
   test('unstable counter should equal exactly 10', () => {
-    const result = unstableCounter();
-    expect(result).toBe(10);
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    expect(unstableCounter()).toBe(10);
   });
 
   test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
-    expect(result).toBe('Success');
+    const spy = jest.spyOn(Math, 'random');
+    // First call controls failure rate (<= 0.7 => success), second controls delay
+    spy.mockReturnValueOnce(0.1).mockReturnValueOnce(0.3);
+
+    await expect(flakyApiCall()).resolves.toBe('Success');
   });
 
   test('timing-based test with race condition', async () => {
-    const startTime = Date.now();
-    await randomDelay(50, 150);
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    
-    expect(duration).toBeLessThan(100);
-  });
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(0));
 
-  test('multiple random conditions', () => {
-    const condition1 = Math.random() > 0.3;
-    const condition2 = Math.random() > 0.3;
-    const condition3 = Math.random() > 0.3;
-    
-    expect(condition1 && condition2 && condition3).toBe(true);
+    const start = Date.now();
+    const promise = randomDelay(100, 100);
+
+    jest.advanceTimersByTime(100);
+    await promise;
+
+    const end = Date.now();
+    expect(end - start).toBe(100);
   });
 
   test('date-based flakiness', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-01-01T00:00:00.234Z'));
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
-    
-    expect(milliseconds % 7).not.toBe(0);
-  });
 
-  test('memory-based flakiness using object references', () => {
-    const obj1 = { value: Math.random() };
-    const obj2 = { value: Math.random() };
-    
-    const compareResult = obj1.value > obj2.value;
-    expect(compareResult).toBe(true);
+    expect(milliseconds % 7).not.toBe(0);
   });
 });
