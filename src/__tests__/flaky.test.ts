@@ -1,50 +1,53 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
+function createSeqRng(values: number[]): () => number {
+  let i = 0;
+  return () => (i < values.length ? values[i++] : values[values.length - 1]);
+}
+
 describe('Intentionally Flaky Tests', () => {
-  test('random boolean should be true', () => {
-    const result = randomBoolean();
-    expect(result).toBe(true);
+  test('randomBoolean returns true when rng > 0.5', () => {
+    expect(randomBoolean(() => 0.9)).toBe(true);
   });
 
-  test('unstable counter should equal exactly 10', () => {
-    const result = unstableCounter();
+  test('randomBoolean returns false when rng <= 0.5', () => {
+    expect(randomBoolean(() => 0.5)).toBe(false);
+  });
+
+  test('unstableCounter returns base 10 when noise is off', () => {
+    const result = unstableCounter(() => 0.0);
     expect(result).toBe(10);
   });
 
-  test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
-    expect(result).toBe('Success');
+  test('unstableCounter adds +1 noise when triggered', () => {
+    const rng = createSeqRng([0.95, 0.95]); // trigger noise, then +1
+    const result = unstableCounter(rng);
+    expect(result).toBe(11);
   });
 
-  test('timing-based test with race condition', async () => {
-    const startTime = Date.now();
-    await randomDelay(50, 150);
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    
-    expect(duration).toBeLessThan(100);
+  test('flakyApiCall resolves successfully (deterministic)', async () => {
+    jest.useFakeTimers();
+    try {
+      const rng = createSeqRng([0.6, 0.2]); // no fail, 100ms delay
+      const promise = flakyApiCall({ rng });
+      jest.advanceTimersByTime(100);
+      await expect(promise).resolves.toBe('Success');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
-  test('multiple random conditions', () => {
-    const condition1 = Math.random() > 0.3;
-    const condition2 = Math.random() > 0.3;
-    const condition3 = Math.random() > 0.3;
-    
-    expect(condition1 && condition2 && condition3).toBe(true);
-  });
-
-  test('date-based flakiness', () => {
-    const now = new Date();
-    const milliseconds = now.getMilliseconds();
-    
-    expect(milliseconds % 7).not.toBe(0);
-  });
-
-  test('memory-based flakiness using object references', () => {
-    const obj1 = { value: Math.random() };
-    const obj2 = { value: Math.random() };
-    
-    const compareResult = obj1.value > obj2.value;
-    expect(compareResult).toBe(true);
+  test('randomDelay resolves after expected delay using fake timers', async () => {
+    jest.useFakeTimers();
+    try {
+      const min = 50;
+      const max = 150;
+      const rng = () => 0.0; // picks the minimum delay
+      const promise = randomDelay(min, max, rng);
+      jest.advanceTimersByTime(50);
+      await expect(promise).resolves.toBeUndefined();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
