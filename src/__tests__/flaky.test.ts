@@ -1,5 +1,10 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
+jest.mock('../utils', () => ({
+  ...jest.requireActual('../utils'),
+  randomDelay: jest.fn(),
+}));
+
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
     const result = randomBoolean();
@@ -17,12 +22,21 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('timing-based test with race condition', async () => {
+    const mockedRandomDelay = randomDelay as jest.MockedFunction<typeof randomDelay>;
+    
+    // Mock the delay to always take exactly 75ms (deterministic and < 100ms)
+    mockedRandomDelay.mockImplementation(() => 
+      new Promise(resolve => setTimeout(resolve, 75))
+    );
+    
     const startTime = Date.now();
     await randomDelay(50, 150);
     const endTime = Date.now();
     const duration = endTime - startTime;
     
     expect(duration).toBeLessThan(100);
+    
+    mockedRandomDelay.mockRestore();
   });
 
   test('multiple random conditions', () => {
