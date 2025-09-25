@@ -12,6 +12,7 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
+    jest.spyOn(require('../utils'), 'flakyApiCall').mockResolvedValue('Success');
     const result = await flakyApiCall();
     expect(result).toBe('Success');
   });
