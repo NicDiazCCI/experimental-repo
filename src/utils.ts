@@ -1,18 +1,18 @@
-export function randomBoolean(): boolean {
-  return Math.random() > 0.5;
+export function randomBoolean(rand: () => number = Math.random): boolean {
+  return rand() > 0.5;
 }
 
-export function randomDelay(min: number = 100, max: number = 1000): Promise<void> {
-  const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-  return new Promise(resolve => setTimeout(resolve, delay));
+export function randomDelay(min: number = 100, max: number = 1000, rand: () => number = Math.random, timer: (cb: (...args: any[]) => void, ms: number) => any = setTimeout): Promise<void> {
+  const delay = Math.floor(rand() * (max - min + 1)) + min;
+  return new Promise(resolve => timer(resolve, delay));
 }
 
-export function flakyApiCall(): Promise<string> {
+export function flakyApiCall(rand: () => number = Math.random, timer: (cb: (...args: any[]) => void, ms: number) => any = setTimeout): Promise<string> {
   return new Promise((resolve, reject) => {
-    const shouldFail = Math.random() > 0.7;
-    const delay = Math.random() * 500;
-    
-    setTimeout(() => {
+    const shouldFail = rand() > 0.7;
+    const delay = rand() * 500;
+
+    timer(() => {
       if (shouldFail) {
         reject(new Error('Network timeout'));
       } else {
@@ -22,8 +22,8 @@ export function flakyApiCall(): Promise<string> {
   });
 }
 
-export function unstableCounter(): number {
+export function unstableCounter(rand: () => number = Math.random): number {
   const base = 10;
-  const noise = Math.random() > 0.8 ? Math.floor(Math.random() * 3) - 1 : 0;
+  const noise = rand() > 0.8 ? Math.floor(rand() * 3) - 1 : 0;
   return base + noise;
 }
