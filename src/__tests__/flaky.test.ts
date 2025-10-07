@@ -2,8 +2,23 @@ import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../ut
 
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
-    const result = randomBoolean();
-    expect(result).toBe(true);
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.9);
+    try {
+      const result = randomBoolean();
+      expect(result).toBe(true);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  test('random boolean should be false', () => {
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    try {
+      const result = randomBoolean();
+      expect(result).toBe(false);
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 
   test('unstable counter should equal exactly 10', () => {
