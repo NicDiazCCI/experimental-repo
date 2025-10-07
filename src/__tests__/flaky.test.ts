@@ -2,8 +2,13 @@ import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../ut
 
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
-    const result = randomBoolean();
+    const result = randomBoolean(() => 0.9);
     expect(result).toBe(true);
+  });
+
+  test('random boolean should be false', () => {
+    const result = randomBoolean(() => 0.1);
+    expect(result).toBe(false);
   });
 
   test('unstable counter should equal exactly 10', () => {

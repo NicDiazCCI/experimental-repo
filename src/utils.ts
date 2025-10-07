@@ -1,5 +1,5 @@
-export function randomBoolean(): boolean {
-  return Math.random() > 0.5;
+export function randomBoolean(rng: () => number = Math.random): boolean {
+  return rng() > 0.5;
 }
 
 export function randomDelay(min: number = 100, max: number = 1000): Promise<void> {
