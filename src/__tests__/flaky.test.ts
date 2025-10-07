@@ -34,10 +34,15 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('date-based flakiness', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-01-15T12:00:00.001Z')); // milliseconds = 1
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
-    
+
     expect(milliseconds % 7).not.toBe(0);
+
+    jest.useRealTimers();
   });
 
   test('memory-based flakiness using object references', () => {
