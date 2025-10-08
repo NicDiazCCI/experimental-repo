@@ -1,5 +1,5 @@
-export function randomBoolean(): boolean {
-  return Math.random() > 0.5;
+export function randomBoolean(rng: () => number = Math.random): boolean {
+  return rng() > 0.5;
 }
 
 export function randomDelay(min: number = 100, max: number = 1000): Promise<void> {
@@ -7,11 +7,11 @@ export function randomDelay(min: number = 100, max: number = 1000): Promise<void
   return new Promise(resolve => setTimeout(resolve, delay));
 }
 
-export function flakyApiCall(): Promise<string> {
+export function flakyApiCall({ rng = Math.random }: { rng?: () => number } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
-    const shouldFail = Math.random() > 0.7;
-    const delay = Math.random() * 500;
-    
+    const shouldFail = rng() > 0.7;
+    const delay = rng() * 500;
+
     setTimeout(() => {
       if (shouldFail) {
         reject(new Error('Network timeout'));
@@ -22,8 +22,8 @@ export function flakyApiCall(): Promise<string> {
   });
 }
 
-export function unstableCounter(): number {
+export function unstableCounter(rng: () => number = Math.random): number {
   const base = 10;
-  const noise = Math.random() > 0.8 ? Math.floor(Math.random() * 3) - 1 : 0;
+  const noise = rng() > 0.8 ? Math.floor(rng() * 3) - 1 : 0;
   return base + noise;
 }
