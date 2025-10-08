@@ -1,6 +1,8 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
-describe('Intentionally Flaky Tests', () => {
+const runFlaky = process.env.OPTIN_FLAKY_TESTS === '1';
+const describeFn = runFlaky ? describe : describe.skip;
+describeFn('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
     const result = randomBoolean();
     expect(result).toBe(true);
