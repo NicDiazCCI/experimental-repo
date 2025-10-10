@@ -1,18 +1,26 @@
-export function randomBoolean(): boolean {
-  return Math.random() > 0.5;
+export function randomBoolean(rng: () => number = Math.random): boolean {
+  return rng() > 0.5;
 }
 
-export function randomDelay(min: number = 100, max: number = 1000): Promise<void> {
-  const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-  return new Promise(resolve => setTimeout(resolve, delay));
+export function randomDelay(
+  min: number = 100,
+  max: number = 1000,
+  rng: () => number = Math.random,
+  clock: (fn: () => void, ms: number) => unknown = setTimeout
+): Promise<void> {
+  const delay = Math.floor(rng() * (max - min + 1)) + min;
+  return new Promise(resolve => clock(resolve, delay));
 }
 
-export function flakyApiCall(): Promise<string> {
+export function flakyApiCall(
+  rng: () => number = Math.random,
+  clock: (fn: () => void, ms: number) => unknown = setTimeout
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    const shouldFail = Math.random() > 0.7;
-    const delay = Math.random() * 500;
-    
-    setTimeout(() => {
+    const shouldFail = rng() > 0.7;
+    const delay = rng() * 500;
+
+    clock(() => {
       if (shouldFail) {
         reject(new Error('Network timeout'));
       } else {

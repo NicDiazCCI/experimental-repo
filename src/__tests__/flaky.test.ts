@@ -1,14 +1,15 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
 afterEach(() => {
+  jest.clearAllTimers();
+  jest.clearAllMocks();
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
 
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.9);
-    const result = randomBoolean();
+    const result = randomBoolean(() => 0.9);
     expect(result).toBe(true);
   });
 
@@ -19,35 +20,28 @@ describe('Intentionally Flaky Tests', () => {
 
   test('flaky API call should succeed', async () => {
     jest.useFakeTimers();
-    jest
-      .spyOn(Math, 'random')
-      .mockReturnValueOnce(0.1) // shouldFail = false
-      .mockReturnValueOnce(0.2); // delay
+    const seq = [0.1, 0.2];
+    let i = 0;
+    const rng = () => seq[i++];
 
-    const p = flakyApiCall();
-    jest.runAllTimers();
+    const p = flakyApiCall(rng, setTimeout);
+    await jest.runAllTimersAsync();
     await expect(p).resolves.toBe('Success');
   });
 
   test('timing-based test with race condition', async () => {
     jest.useFakeTimers();
-    jest.spyOn(Math, 'random').mockReturnValue(0); // choose min delay
 
-    const p = randomDelay(50, 150);
-    jest.advanceTimersByTime(50);
+    const p = randomDelay(50, 150, () => 0, setTimeout);
+    await jest.advanceTimersByTimeAsync(50);
     await expect(p).resolves.toBeUndefined();
   });
 
   test('multiple random conditions', () => {
-    jest
-      .spyOn(Math, 'random')
-      .mockReturnValueOnce(0.9)
-      .mockReturnValueOnce(0.9)
-      .mockReturnValueOnce(0.9);
-
-    const condition1 = Math.random() > 0.3;
-    const condition2 = Math.random() > 0.3;
-    const condition3 = Math.random() > 0.3;
+    const rng = () => 0.9;
+    const condition1 = rng() > 0.3;
+    const condition2 = rng() > 0.3;
+    const condition3 = rng() > 0.3;
 
     expect(condition1 && condition2 && condition3).toBe(true);
   });
@@ -62,13 +56,8 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('memory-based flakiness using object references', () => {
-    jest
-      .spyOn(Math, 'random')
-      .mockReturnValueOnce(0.8) // obj1.value
-      .mockReturnValueOnce(0.2); // obj2.value
-
-    const obj1 = { value: Math.random() };
-    const obj2 = { value: Math.random() };
+    const obj1 = { value: 0.8 };
+    const obj2 = { value: 0.2 };
 
     const compareResult = obj1.value > obj2.value;
     expect(compareResult).toBe(true);
