@@ -12,7 +12,7 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
+    const result = await flakyApiCall(false, 0);
     expect(result).toBe('Success');
   });
 
