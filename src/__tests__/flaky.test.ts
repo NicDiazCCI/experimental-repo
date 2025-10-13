@@ -12,6 +12,8 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
+    // Mock Math.random to return a value that ensures success (< 0.7)
+    jest.spyOn(Math, 'random').mockReturnValue(0.5);
     const result = await flakyApiCall();
     expect(result).toBe('Success');
   });
