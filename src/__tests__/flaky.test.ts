@@ -3,6 +3,7 @@ import * as utils from '../utils';
 describe('Intentionally Flaky Tests', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
   test('random boolean should be true', () => {
@@ -24,8 +25,8 @@ describe('Intentionally Flaky Tests', () => {
 
   test('timing-based test with race condition', async () => {
     jest.useFakeTimers();
-    const p = utils.randomDelay(50, 150);
-    jest.advanceTimersByTime(150);
+    const p = utils.randomDelay(50, 150, () => 0.9);
+    jest.runAllTimers();
     await p;
     expect(true).toBe(true);
   });
@@ -50,11 +51,10 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('memory-based flakiness using object references', () => {
-    jest.spyOn(Math, 'random')
-      .mockReturnValueOnce(0.9)
-      .mockReturnValueOnce(0.1);
-    const obj1 = { value: Math.random() };
-    const obj2 = { value: Math.random() };
+    const seq = [0.9, 0.1];
+    const rng = () => seq.shift() as number;
+    const obj1 = { value: rng() };
+    const obj2 = { value: rng() };
     const compareResult = obj1.value > obj2.value;
     expect(compareResult).toBe(true);
   });
