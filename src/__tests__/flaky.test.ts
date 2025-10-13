@@ -12,8 +12,7 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('unstable counter should equal exactly 10', () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.1);
-    const result = utils.unstableCounter();
+    const result = utils.unstableCounter(() => 0.1);
     expect(result).toBe(10);
   });
 
