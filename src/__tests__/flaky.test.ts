@@ -12,8 +12,20 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
-    expect(result).toBe('Success');
+    jest.useFakeTimers();
+
+    const randomSpy = jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.5) // shouldFail=false (<= 0.7)
+      .mockReturnValueOnce(0.2); // delay = 0.2 * 500 = 100ms
+
+    const promise = flakyApiCall();
+
+    jest.advanceTimersByTime(100);
+
+    await expect(promise).resolves.toBe('Success');
+
+    randomSpy.mockRestore();
+    jest.useRealTimers();
   });
 
   test('timing-based test with race condition', async () => {
