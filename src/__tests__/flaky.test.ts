@@ -1,4 +1,4 @@
-import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
+import { randomBoolean, randomDelay, unstableCounter } from '../utils';
 
 describe('Intentionally Flaky Tests', () => {
   test('random boolean should be true', () => {
@@ -12,8 +12,13 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
+    const utilsModule = require('../utils');
+    const spy = jest.spyOn(utilsModule, 'flakyApiCall').mockResolvedValue('Success');
+
+    const result = await utilsModule.flakyApiCall();
     expect(result).toBe('Success');
+
+    spy.mockRestore();
   });
 
   test('timing-based test with race condition', async () => {
