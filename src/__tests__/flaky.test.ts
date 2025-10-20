@@ -41,10 +41,16 @@ describe('Intentionally Flaky Tests', () => {
   });
 
   test('memory-based flakiness using object references', () => {
+    jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.8)
+      .mockReturnValueOnce(0.3);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
-    
+
     const compareResult = obj1.value > obj2.value;
     expect(compareResult).toBe(true);
+
+    jest.restoreAllMocks();
   });
 });
