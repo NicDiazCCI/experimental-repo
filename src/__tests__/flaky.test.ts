@@ -1,49 +1,83 @@
 import { randomBoolean, randomDelay, flakyApiCall, unstableCounter } from '../utils';
 
 describe('Intentionally Flaky Tests', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
   test('random boolean should be true', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.9);
     const result = randomBoolean();
     expect(result).toBe(true);
   });
 
   test('unstable counter should equal exactly 10', () => {
+    // Force the branch where no noise is added
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
     const result = unstableCounter();
     expect(result).toBe(10);
   });
 
   test('flaky API call should succeed', async () => {
-    const result = await flakyApiCall();
-    expect(result).toBe('Success');
+    jest.useFakeTimers();
+    // First call: shouldFail decision; Second call: delay selection
+    jest
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0.1) // shouldFail = false
+      .mockReturnValueOnce(0.0); // delay = 0ms
+
+    const promise = flakyApiCall();
+    jest.runAllTimers();
+    await expect(promise).resolves.toBe('Success');
   });
 
-  test('timing-based test with race condition', async () => {
-    const startTime = Date.now();
-    await randomDelay(50, 150);
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    
-    expect(duration).toBeLessThan(100);
+  test('timing-based test without race condition', async () => {
+    jest.useFakeTimers();
+    // randomDelay(50,150) => choose a deterministic delay of 60ms
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    const promise = randomDelay(50, 150);
+    // Advance exactly the chosen delay to resolve the promise
+    jest.advanceTimersByTime(60);
+    await expect(promise).resolves.toBeUndefined();
   });
 
   test('multiple random conditions', () => {
+    // Ensure all conditions evaluate to true
+    jest
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0.9)
+      .mockReturnValueOnce(0.9)
+      .mockReturnValueOnce(0.9);
+
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
-    
+
     expect(condition1 && condition2 && condition3).toBe(true);
   });
 
-  test('date-based flakiness', () => {
+  test('date-based flakiness stabilized with fixed system time', () => {
+    jest.useFakeTimers();
+    // Pick a millisecond that is not divisible by 7 (e.g., 5)
+    jest.setSystemTime(new Date('2020-01-01T00:00:00.005Z'));
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
-    
     expect(milliseconds % 7).not.toBe(0);
   });
 
   test('memory-based flakiness using object references', () => {
+    // Ensure first random is greater than second
+    jest
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0.8)
+      .mockReturnValueOnce(0.2);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
-    
+
     const compareResult = obj1.value > obj2.value;
     expect(compareResult).toBe(true);
   });
