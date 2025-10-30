@@ -88,7 +88,7 @@ describe('Deterministic Tests (de-flaked)', () => {
     expect(milliseconds % 7).not.toBe(0);
   });
 
-  test('object comparison is deterministic with controlled randoms', () => {
+  test('Intentionally Flaky Tests memory-based flakiness using object references', () => {
     const spy = mockMathRandomSequence([0.8, 0.2]);
 
     const obj1 = { value: Math.random() };
