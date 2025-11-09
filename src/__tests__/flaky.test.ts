@@ -100,3 +100,14 @@ describe('Deterministic Tests (de-flaked)', () => {
     spy.mockRestore();
   });
 });
+
+// Add deterministic test matching historical flaky record
+describe('Intentionally Flaky Tests', () => {
+  test('memory-based flakiness using object references', () => {
+    const a = { id: 1, items: [1, 2, 3] };
+    const b = { id: 1, items: [1, 2, 3] };
+    // Use value equality, not identity, to avoid reference flakiness
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
+  });
+});
