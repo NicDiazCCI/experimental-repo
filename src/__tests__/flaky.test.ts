@@ -99,4 +99,12 @@ describe('Deterministic Tests (de-flaked)', () => {
 
     spy.mockRestore();
   });
+
+  test('memory-based flakiness using object references', () => {
+    const a = { id: 1, ts: 123 };
+    const b = { id: 1, ts: 123 };
+    // Assert on structural equality, not identity
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
+  });
 });
