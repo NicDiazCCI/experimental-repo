@@ -4,9 +4,9 @@ orbs:
 workflows:
   cci-agent-setup:
     jobs:
-      - cci-agent-setup
+      - test-node
 jobs:
-  cci-agent-setup:
+  test-node:
     docker:
       - image: cimg/node:lts
     steps:
