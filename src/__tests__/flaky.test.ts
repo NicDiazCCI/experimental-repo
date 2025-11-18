@@ -26,8 +26,12 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("flaky API call should succeed", async () => {
-    const result = await flakyApiCall();
+    jest.useFakeTimers();
+    const promise = flakyApiCall();
+    jest.runAllTimers();
+    const result = await promise;
     expect(result).toBe("Success");
+    jest.useRealTimers();
   });
 
   test("timing-based test with race condition", async () => {
@@ -64,6 +68,8 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    jest.spyOn(Math, 'random').mockReturnValueOnce(0.9).mockReturnValueOnce(0.1);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
