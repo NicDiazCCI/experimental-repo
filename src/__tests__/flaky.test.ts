@@ -6,6 +6,15 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
+  beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.8);
+    jest.spyOn(Date, 'now').mockReturnValue(1000);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("random boolean should be true", () => {
     const result = randomBoolean();
     expect(result).toBe(true);
@@ -46,6 +55,8 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    jest.spyOn(Date.prototype, 'getMilliseconds').mockReturnValue(1);
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
