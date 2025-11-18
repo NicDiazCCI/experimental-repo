@@ -27,6 +27,7 @@ describe("Intentionally Flaky Tests", () => {
 
   test("flaky API call should succeed", async () => {
     jest.useFakeTimers();
+    jest.spyOn(Math, 'random').mockReturnValue(0.5);
     const promise = flakyApiCall();
     jest.runAllTimers();
     const result = await promise;
