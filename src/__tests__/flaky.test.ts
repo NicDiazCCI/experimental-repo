@@ -22,12 +22,19 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("timing-based test with race condition", async () => {
+    jest.spyOn(global, 'setTimeout').mockImplementation((callback: any) => {
+      callback();
+      return 0 as any;
+    });
+
     const startTime = Date.now();
     await randomDelay(50, 150);
     const endTime = Date.now();
     const duration = endTime - startTime;
 
     expect(duration).toBeLessThan(100);
+
+    jest.restoreAllMocks();
   });
 
   test("multiple random conditions", () => {
