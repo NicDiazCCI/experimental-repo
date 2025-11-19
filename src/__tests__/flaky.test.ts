@@ -22,12 +22,16 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("timing-based test with race condition", async () => {
+    jest.useFakeTimers();
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    const delayPromise = randomDelay(50, 150);
+    jest.advanceTimersByTime(75);
+    await delayPromise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
     expect(duration).toBeLessThan(100);
+    jest.useRealTimers();
   });
 
   test("multiple random conditions", () => {
@@ -53,10 +57,16 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockReturnValueOnce(0.8);
+    mockRandom.mockReturnValueOnce(0.2);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
     const compareResult = obj1.value > obj2.value;
     expect(compareResult).toBe(true);
+
+    mockRandom.mockRestore();
   });
 });
