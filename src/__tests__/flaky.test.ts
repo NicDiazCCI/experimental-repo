@@ -7,8 +7,13 @@ import {
 
 describe("Intentionally Flaky Tests", () => {
   test("random boolean should be true", () => {
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockReturnValueOnce(0.6); // 0.6 > 0.5 returns true
+
     const result = randomBoolean();
     expect(result).toBe(true);
+
+    mockRandom.mockRestore();
   });
 
   test("unstable counter should equal exactly 10", () => {
@@ -17,21 +22,36 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("flaky API call should succeed", async () => {
-    const result = await flakyApiCall();
+    jest.useFakeTimers();
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockReturnValueOnce(0.5); // shouldFail = false (0.5 > 0.7 is false)
+    mockRandom.mockReturnValueOnce(100); // delay value
+
+    const resultPromise = flakyApiCall();
+    await jest.runAllTimersAsync();
+    const result = await resultPromise;
+
     expect(result).toBe("Success");
+
+    mockRandom.mockRestore();
+    jest.useRealTimers();
   });
 
   test("timing-based test with race condition", async () => {
     jest.useFakeTimers();
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockReturnValueOnce(0); // Will result in min delay (50ms)
+
     const startTime = Date.now();
     const delayPromise = randomDelay(50, 150);
-    jest.advanceTimersByTime(75);
     await jest.runAllTimersAsync();
     await delayPromise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
     expect(duration).toBeLessThan(100);
+
+    mockRandom.mockRestore();
     jest.useRealTimers();
   });
 
