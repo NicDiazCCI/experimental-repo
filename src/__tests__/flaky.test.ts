@@ -26,6 +26,7 @@ describe("Intentionally Flaky Tests", () => {
     const startTime = Date.now();
     const delayPromise = randomDelay(50, 150);
     jest.advanceTimersByTime(75);
+    await jest.runAllTimersAsync();
     await delayPromise;
     const endTime = Date.now();
     const duration = endTime - startTime;
@@ -50,10 +51,12 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    jest.spyOn(Date.prototype, 'getMilliseconds').mockReturnValue(15);
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
     expect(milliseconds % 7).not.toBe(0);
+    jest.restoreAllMocks();
   });
 
   test("memory-based flakiness using object references", () => {
