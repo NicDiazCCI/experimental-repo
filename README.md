@@ -1,4 +1,4 @@
-# rule-repo
+# experimental-repo
 
 A TypeScript project demonstrating flaky test patterns and their fixes for CircleCI testing.
 
