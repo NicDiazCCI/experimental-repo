@@ -37,7 +37,7 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("timing-based test with race condition", async () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    jest.spyOn(Math, 'random').mockReturnValue(0.4);
     const startTime = Date.now();
     const promise = randomDelay(50, 150);
     jest.runAllTimers();
