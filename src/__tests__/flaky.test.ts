@@ -6,6 +6,16 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
+  beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.6);
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
   test("random boolean should be true", () => {
     const result = randomBoolean();
     expect(result).toBe(true);
@@ -17,13 +27,17 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("flaky API call should succeed", async () => {
-    const result = await flakyApiCall();
+    const promise = flakyApiCall();
+    jest.runAllTimers();
+    const result = await promise;
     expect(result).toBe("Success");
   });
 
   test("timing-based test with race condition", async () => {
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    const promise = randomDelay(50, 150);
+    jest.advanceTimersByTime(75);
+    await Promise.resolve();
     const endTime = Date.now();
     const duration = endTime - startTime;
 
@@ -39,6 +53,7 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    jest.setSystemTime(new Date('2025-01-01T00:00:00.001Z'));
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
@@ -46,6 +61,10 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.8)
+      .mockReturnValueOnce(0.3);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
