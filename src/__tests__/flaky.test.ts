@@ -6,10 +6,6 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
@@ -28,6 +24,7 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("flaky API call should succeed", async () => {
+    jest.useFakeTimers();
     jest.spyOn(Math, "random").mockReturnValueOnce(0.5).mockReturnValueOnce(0);
     const promise = flakyApiCall();
     jest.runAllTimers();
@@ -36,6 +33,7 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("timing-based test with race condition", async () => {
+    jest.useFakeTimers();
     jest.spyOn(Math, "random").mockReturnValue(0.5);
     jest.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1075);
     const startTime = Date.now();
