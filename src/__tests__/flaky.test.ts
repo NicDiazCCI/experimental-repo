@@ -6,6 +6,23 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
+
+    let randomCallCount = 0;
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockImplementation(() => {
+      randomCallCount++;
+      return 0.6;
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
   test("random boolean should be true", () => {
     const result = randomBoolean();
     expect(result).toBe(true);
@@ -17,13 +34,17 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("flaky API call should succeed", async () => {
-    const result = await flakyApiCall();
+    const promise = flakyApiCall();
+    jest.runAllTimers();
+    const result = await promise;
     expect(result).toBe("Success");
   });
 
   test("timing-based test with race condition", async () => {
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    const promise = randomDelay(50, 150);
+    jest.advanceTimersByTime(75);
+    await promise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
