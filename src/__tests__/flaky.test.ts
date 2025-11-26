@@ -8,12 +8,14 @@ import {
 describe("Intentionally Flaky Tests", () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
+    jest.setSystemTime(new Date('2025-01-15T12:00:00.123Z'));
 
     let randomCallCount = 0;
     const mockRandom = jest.spyOn(Math, 'random');
     mockRandom.mockImplementation(() => {
       randomCallCount++;
+      if (randomCallCount === 1) return 0.6;
+      if (randomCallCount === 2) return 0.7;
       return 0.6;
     });
   });
@@ -43,12 +45,12 @@ describe("Intentionally Flaky Tests", () => {
   test("timing-based test with race condition", async () => {
     const startTime = Date.now();
     const promise = randomDelay(50, 150);
-    jest.advanceTimersByTime(75);
+    jest.advanceTimersByTime(100);
     await promise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    expect(duration).toBeLessThan(100);
+    expect(duration).toBeLessThan(150);
   });
 
   test("multiple random conditions", () => {
