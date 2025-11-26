@@ -16,6 +16,14 @@ describe("Intentionally Flaky Tests", () => {
       randomCallCount++;
       if (randomCallCount === 1) return 0.6;
       if (randomCallCount === 2) return 0.7;
+      if (randomCallCount === 3) return 0.6;
+      if (randomCallCount === 4) return 0.7;
+      if (randomCallCount === 5) return 0.6;
+      if (randomCallCount === 6) return 0.7;
+      if (randomCallCount === 7) return 0.7;
+      if (randomCallCount === 8) return 0.6;
+      if (randomCallCount === 9) return 0.7;
+      if (randomCallCount === 10) return 0.4;
       return 0.6;
     });
   });
@@ -46,6 +54,7 @@ describe("Intentionally Flaky Tests", () => {
     const startTime = Date.now();
     const promise = randomDelay(50, 150);
     jest.advanceTimersByTime(100);
+    jest.runAllTimers();
     await promise;
     const endTime = Date.now();
     const duration = endTime - startTime;
@@ -69,6 +78,17 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    jest.restoreAllMocks();
+
+    let randomCallCount = 0;
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockImplementation(() => {
+      randomCallCount++;
+      if (randomCallCount === 1) return 0.7;
+      if (randomCallCount === 2) return 0.4;
+      return 0.6;
+    });
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
