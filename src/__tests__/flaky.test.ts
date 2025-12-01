@@ -7,7 +7,7 @@ import {
 
 describe("Intentionally Flaky Tests", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
   });
 
   afterEach(() => {
