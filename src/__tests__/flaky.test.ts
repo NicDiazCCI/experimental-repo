@@ -11,7 +11,7 @@ describe("Intentionally Flaky Tests", () => {
     jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
 
     let mathRandomCallCount = 0;
-    const mockValues = [0.8, 0.7, 0.6, 0.5, 0.9, 0.8, 0.7];
+    const mockValues = [0.6, 0.4, 0.5, 0.8, 0.7, 0.6, 0.9, 0.8, 0.7];
     jest.spyOn(Math, 'random').mockImplementation(() => {
       return mockValues[mathRandomCallCount++ % mockValues.length];
     });
@@ -34,7 +34,7 @@ describe("Intentionally Flaky Tests", () => {
 
   test("flaky API call should succeed", async () => {
     const promise = flakyApiCall();
-    jest.advanceTimersByTime(500);
+    await jest.advanceTimersByTimeAsync(500);
     await expect(promise).resolves.toBe("Success");
   });
 
