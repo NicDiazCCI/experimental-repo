@@ -7,38 +7,47 @@ jobs:
     executor: node/default
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "package-lock.json" }}
+            - v1-deps-
       - node/install-packages:
           pkg-manager: npm
+          cache-path: ~/project/node_modules
+          override-ci-command: npm ci
+      - save_cache:
+          key: v1-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/project/node_modules
       - run:
           command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - dist
+            - node_modules
       - store_artifacts:
-          path: ~/artifacts
+          path: ~/project/dist
           destination: node-build
   test-node:
     executor: node/default
+    parallelism: 2
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: ~/project
       - run:
           name: Run tests
           command: |
             mkdir -p test-results
-            TEST_FILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}")
-            echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
+            TESTFILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}" | circleci tests split --split-by=timings)
+            npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml $TESTFILES
       - store_test_results:
           path: test-results
 workflows:
-  build:
+  build-and-test:
     jobs:
       - build-node
-  test:
-    jobs:
-      - test-node
+      - test-node:
+          requires:
+            - build-node
