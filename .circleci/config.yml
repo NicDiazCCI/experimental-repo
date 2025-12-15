@@ -2,43 +2,28 @@ version: 2.1
 orbs:
   node: circleci/node@7
 jobs:
-  build-node:
-    # Build node project
+  build-and-test:
     executor: node/default
     steps:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          cache-path: ~/.npm
       - run:
+          name: Run tests
+          command: npm run test:run -- --ci --maxWorkers=2
+      - run:
+          name: Build project
           command: npm run build
       - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
           name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
+          command: |
+            mkdir -p ~/artifacts
+            cp -R dist ~/artifacts 2>/dev/null || true
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
-  test-node:
-    executor: node/default
-    steps:
-      - checkout
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          name: Run tests
-          command: |
-            mkdir -p test-results
-            TEST_FILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}")
-            echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
-      - store_test_results:
-          path: test-results
 workflows:
-  build:
+  build-and-test:
     jobs:
-      - build-node
-  test:
-    jobs:
-      - test-node
+      - build-and-test
