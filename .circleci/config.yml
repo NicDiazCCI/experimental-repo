@@ -7,8 +7,19 @@ jobs:
     executor: node/default
     steps:
       - checkout
+      # Restore dependency cache
+      - restore_cache:
+          keys:
+            - node-deps-v1-{{ checksum "package-lock.json" }}
+            - node-deps-v1-
       - node/install-packages:
           pkg-manager: npm
+      # Save dependency cache
+      - save_cache:
+          key: node-deps-v1-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+            - node_modules
       - run:
           command: npm run build
       - run:
@@ -21,12 +32,24 @@ jobs:
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
+      # Persist workspace for test job
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+            - build
+            - dist
+            - public
+            - .output
+            - .next
+            - .docusaurus
   test-node:
     executor: node/default
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      # Attach workspace from build job
+      - attach_workspace:
+          at: .
       - run:
           name: Run tests
           command: |
@@ -36,9 +59,9 @@ jobs:
       - store_test_results:
           path: test-results
 workflows:
-  build:
+  build-and-test:
     jobs:
       - build-node
-  test:
-    jobs:
-      - test-node
+      - test-node:
+          requires:
+            - build-node
