@@ -4,7 +4,9 @@ orbs:
 jobs:
   build-node:
     # Build node project
-    executor: node/default
+    docker:
+      - image: cimg/node:lts
+    resource_class: xlarge
     steps:
       - checkout
       - node/install-packages:
@@ -21,12 +23,19 @@ jobs:
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - node_modules
   test-node:
-    executor: node/default
+    parallelism: 2
+    docker:
+      - image: cimg/node:lts
+    resource_class: xlarge
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: ~/project
       - run:
           name: Run tests
           command: |
@@ -36,9 +45,9 @@ jobs:
       - store_test_results:
           path: test-results
 workflows:
-  build:
+  build-and-test:
     jobs:
       - build-node
-  test:
-    jobs:
-      - test-node
+      - test-node:
+          requires:
+            - build-node
