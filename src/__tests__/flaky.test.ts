@@ -6,6 +6,14 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
+  beforeEach(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.6);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("random boolean should be true", () => {
     const result = randomBoolean();
     expect(result).toBe(true);
@@ -22,10 +30,13 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("timing-based test with race condition", async () => {
+    jest.useFakeTimers();
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    const delayPromise = randomDelay(50, 150);
+    await jest.advanceTimersByTimeAsync(75);
     const endTime = Date.now();
     const duration = endTime - startTime;
+    jest.useRealTimers();
 
     expect(duration).toBeLessThan(100);
   });
@@ -39,6 +50,7 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    jest.spyOn(Date.prototype, 'getMilliseconds').mockReturnValue(100);
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
@@ -46,6 +58,11 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    let callCount = 0;
+    jest.spyOn(Math, 'random').mockImplementation(() => {
+      callCount++;
+      return callCount === 1 ? 0.8 : 0.3;
+    });
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
