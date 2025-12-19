@@ -1,10 +1,18 @@
 version: 2.1
 orbs:
   node: circleci/node@7
+
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:lts
+    resource_class: medium
+    working_directory: ~/project
+
 jobs:
   build-node:
     # Build node project
-    executor: node/default
+    executor: node-executor
     steps:
       - checkout
       - node/install-packages:
@@ -14,19 +22,29 @@ jobs:
       - run:
           name: Create the ~/artifacts directory if it doesn't exist
           command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
+      # Copy output to artifacts dir (only dist directory is actually built per tsconfig.json)
       - run:
           name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
+          command: cp -R dist ~/artifacts 2>/dev/null || true
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
+      # Persist workspace for downstream jobs
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - dist
+            - node_modules
+
   test-node:
-    executor: node/default
+    executor: node-executor
+    # TODO: Consider adding parallelism here (e.g., parallelism: 4) to speed up tests
+    # Requires validating that test command properly aggregates JUnit XML across containers
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      # Attach workspace from build job to reuse node_modules and dist
+      - attach_workspace:
+          at: ~/project
       - run:
           name: Run tests
           command: |
@@ -35,10 +53,11 @@ jobs:
             echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
       - store_test_results:
           path: test-results
+
 workflows:
-  build:
+  build-and-test:
     jobs:
       - build-node
-  test:
-    jobs:
-      - test-node
+      - test-node:
+          requires:
+            - build-node
