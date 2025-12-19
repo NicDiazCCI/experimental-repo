@@ -5,28 +5,42 @@ jobs:
   build-node:
     # Build node project
     executor: node/default
+    # Optimization: Explicit resource class for cost predictability
+    resource_class: medium
     steps:
       - checkout
       - node/install-packages:
           pkg-manager: npm
       - run:
           command: npm run build
+      # Optimization: Persist build artifacts and dependencies to workspace for test job
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+            - dist
       - run:
           name: Create the ~/artifacts directory if it doesn't exist
           command: mkdir -p ~/artifacts
       # Copy output to artifacts dir
+      # Optimization: Only copy dist directory (primary build output for TypeScript projects)
       - run:
           name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
+          command: cp -R dist ~/artifacts 2>/dev/null || true
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
   test-node:
     executor: node/default
+    # Optimization: Explicit resource class for cost predictability
+    resource_class: medium
+    # Optimization: Enable test parallelism to split tests across multiple containers
+    parallelism: 3
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      # Optimization: Reuse dependencies and build artifacts from workspace instead of reinstalling
+      - attach_workspace:
+          at: .
       - run:
           name: Run tests
           command: |
@@ -36,9 +50,10 @@ jobs:
       - store_test_results:
           path: test-results
 workflows:
-  build:
+  # Optimization: Consolidated workflows to enable dependency chain and workspace sharing
+  build-and-test:
     jobs:
       - build-node
-  test:
-    jobs:
-      - test-node
+      - test-node:
+          requires:
+            - build-node
