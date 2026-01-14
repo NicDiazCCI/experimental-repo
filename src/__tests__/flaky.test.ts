@@ -31,11 +31,18 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("multiple random conditions", () => {
+    const mockRandom = jest.spyOn(Math, 'random');
+    mockRandom.mockReturnValueOnce(0.5); // > 0.3 = true
+    mockRandom.mockReturnValueOnce(0.6); // > 0.3 = true
+    mockRandom.mockReturnValueOnce(0.7); // > 0.3 = true
+
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
 
     expect(condition1 && condition2 && condition3).toBe(true);
+
+    mockRandom.mockRestore();
   });
 
   test("date-based flakiness", () => {
