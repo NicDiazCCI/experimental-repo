@@ -39,10 +39,16 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    // Mock Date to return a fixed time with milliseconds NOT divisible by 7
+    const mockDate = new Date('2026-01-15T12:00:00.123Z'); // 123 % 7 = 4 (not 0)
+    jest.spyOn(global, 'Date').mockImplementation(() => mockDate as any);
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
     expect(milliseconds % 7).not.toBe(0);
+
+    jest.restoreAllMocks();
   });
 
   test("memory-based flakiness using object references", () => {
