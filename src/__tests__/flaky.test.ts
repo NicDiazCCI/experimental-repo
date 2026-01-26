@@ -34,6 +34,9 @@ describe("Intentionally Flaky Tests", () => {
     const mockNow = jest.spyOn(Date, 'now');
     mockNow.mockReturnValueOnce(0).mockReturnValueOnce(75);
 
+    // Ensure deterministic delay so timers resolve when advanced
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+
     const startTime = Date.now();
     const delayPromise = randomDelay(50, 150);
     jest.advanceTimersByTime(75);
