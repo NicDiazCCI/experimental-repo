@@ -6,24 +6,46 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.spyOn(global.Math, "random");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
   test("random boolean should be true", () => {
+    (Math.random as jest.Mock).mockReturnValue(0.6);
     const result = randomBoolean();
     expect(result).toBe(true);
   });
 
   test("unstable counter should equal exactly 10", () => {
+    (Math.random as jest.Mock).mockReturnValue(0.5);
     const result = unstableCounter();
     expect(result).toBe(10);
   });
 
   test("flaky API call should succeed", async () => {
-    const result = await flakyApiCall();
+    (Math.random as jest.Mock)
+      .mockReturnValueOnce(0.6)
+      .mockReturnValueOnce(0.3);
+
+    const promise = flakyApiCall();
+    jest.advanceTimersByTime(500);
+    const result = await promise;
     expect(result).toBe("Success");
   });
 
   test("timing-based test with race condition", async () => {
+    (Math.random as jest.Mock).mockReturnValue(0.4);
+
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    const promise = randomDelay(50, 150);
+    jest.advanceTimersByTime(90);
+    await promise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
@@ -31,6 +53,11 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("multiple random conditions", () => {
+    (Math.random as jest.Mock)
+      .mockReturnValueOnce(0.5)
+      .mockReturnValueOnce(0.5)
+      .mockReturnValueOnce(0.5);
+
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
@@ -39,6 +66,8 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    jest.setSystemTime(new Date("2026-02-13T12:34:56.123Z"));
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
@@ -46,6 +75,10 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    (Math.random as jest.Mock)
+      .mockReturnValueOnce(0.8)
+      .mockReturnValueOnce(0.3);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
