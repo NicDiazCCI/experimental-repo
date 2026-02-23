@@ -1,2 +1,2 @@
 # rule-repo
-A test repo
+A test repo that tests things
