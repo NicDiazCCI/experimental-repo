@@ -6,27 +6,28 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
-  beforeEach(() => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.6);
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   test("random boolean should be true", () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.6);
     const result = randomBoolean();
     expect(result).toBe(true);
   });
 
   test("unstable counter should equal exactly 10", () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.7);
+    jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.7)
+      .mockReturnValueOnce(0.5);
     const result = unstableCounter();
     expect(result).toBe(10);
   });
 
   test("flaky API call should succeed", async () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.6);
+    jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.6)
+      .mockReturnValueOnce(0.3);
     const result = await flakyApiCall();
     expect(result).toBe("Success");
   });
@@ -43,7 +44,10 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("multiple random conditions", () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.6);
+    jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.6)
+      .mockReturnValueOnce(0.6)
+      .mockReturnValueOnce(0.6);
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
