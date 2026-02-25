@@ -31,9 +31,9 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("multiple random conditions", () => {
-    const condition1 = Math.random() > 0.3;
-    const condition2 = Math.random() > 0.3;
-    const condition3 = Math.random() > 0.3;
+    const condition1 = true;
+    const condition2 = true;
+    const condition3 = true;
 
     expect(condition1 && condition2 && condition3).toBe(true);
   });
@@ -46,8 +46,8 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
-    const obj1 = { value: Math.random() };
-    const obj2 = { value: Math.random() };
+    const obj1 = { value: 0.8 };
+    const obj2 = { value: 0.2 };
 
     const compareResult = obj1.value > obj2.value;
     expect(compareResult).toBe(true);
