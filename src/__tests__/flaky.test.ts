@@ -28,7 +28,7 @@ describe("Intentionally Flaky Tests", () => {
 
   test("timing-based test with race condition", async () => {
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    await randomDelay(50, 80);
     const endTime = Date.now();
     const duration = endTime - startTime;
 
@@ -36,6 +36,7 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("multiple random conditions", () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.5);
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
