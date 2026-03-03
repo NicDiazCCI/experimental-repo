@@ -6,24 +6,59 @@ import {
 } from "../utils";
 
 describe("Intentionally Flaky Tests", () => {
+  let mockRandomValues: number[] = [];
+  let randomCallIndex = 0;
+  const originalRandom = Math.random;
+  const originalDateNow = Date.now;
+
+  beforeEach(() => {
+    randomCallIndex = 0;
+  });
+
+  afterEach(() => {
+    Math.random = originalRandom;
+    Date.now = originalDateNow;
+  });
+
   test("random boolean should be true", () => {
+    mockRandomValues = [0.6];
+    randomCallIndex = 0;
+    Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
+
     const result = randomBoolean();
     expect(result).toBe(true);
   });
 
   test("unstable counter should equal exactly 10", () => {
+    mockRandomValues = [0.7];
+    randomCallIndex = 0;
+    Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
+
     const result = unstableCounter();
     expect(result).toBe(10);
   });
 
   test("flaky API call should succeed", async () => {
+    mockRandomValues = [0.5, 0.1];
+    randomCallIndex = 0;
+    Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
+
     const result = await flakyApiCall();
     expect(result).toBe("Success");
   });
 
   test("timing-based test with race condition", async () => {
+    mockRandomValues = [0.0];
+    randomCallIndex = 0;
+    Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
+
+    let mockTime = 1000;
+    Date.now = jest.fn(() => mockTime);
+
     const startTime = Date.now();
-    await randomDelay(50, 150);
+    const delayPromise = randomDelay(50, 150);
+    mockTime += 50;
+    await delayPromise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
@@ -31,6 +66,10 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("multiple random conditions", () => {
+    mockRandomValues = [0.4, 0.5, 0.6];
+    randomCallIndex = 0;
+    Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
+
     const condition1 = Math.random() > 0.3;
     const condition2 = Math.random() > 0.3;
     const condition3 = Math.random() > 0.3;
@@ -39,6 +78,12 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("date-based flakiness", () => {
+    jest.spyOn(global, 'Date').mockImplementation(() => {
+      return {
+        getMilliseconds: () => 123,
+      } as any;
+    });
+
     const now = new Date();
     const milliseconds = now.getMilliseconds();
 
@@ -46,6 +91,10 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("memory-based flakiness using object references", () => {
+    mockRandomValues = [0.6, 0.4];
+    randomCallIndex = 0;
+    Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
+
     const obj1 = { value: Math.random() };
     const obj2 = { value: Math.random() };
 
