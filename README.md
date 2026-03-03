@@ -1,2 +1,2 @@
 # rule-repo
-A test repo
+Updated readme
