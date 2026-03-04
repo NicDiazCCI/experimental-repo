@@ -44,9 +44,9 @@ describe("Intentionally Flaky Tests", () => {
     randomCallIndex = 0;
     Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
 
-    const resultPromise = flakyApiCall();
+    const promise = flakyApiCall();
     jest.runAllTimers();
-    const result = await resultPromise;
+    const result = await promise;
     expect(result).toBe("Success");
     jest.useRealTimers();
   });
