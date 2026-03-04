@@ -39,15 +39,20 @@ describe("Intentionally Flaky Tests", () => {
   });
 
   test("flaky API call should succeed", async () => {
+    jest.useFakeTimers();
     mockRandomValues = [0.5, 0.1];
     randomCallIndex = 0;
     Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
 
-    const result = await flakyApiCall();
+    const resultPromise = flakyApiCall();
+    jest.runAllTimers();
+    const result = await resultPromise;
     expect(result).toBe("Success");
+    jest.useRealTimers();
   });
 
   test("timing-based test with race condition", async () => {
+    jest.useFakeTimers();
     mockRandomValues = [0.0];
     randomCallIndex = 0;
     Math.random = jest.fn(() => mockRandomValues[randomCallIndex++]);
@@ -58,11 +63,13 @@ describe("Intentionally Flaky Tests", () => {
     const startTime = Date.now();
     const delayPromise = randomDelay(50, 150);
     mockTime += 50;
+    jest.advanceTimersByTime(50);
     await delayPromise;
     const endTime = Date.now();
     const duration = endTime - startTime;
 
     expect(duration).toBeLessThan(100);
+    jest.useRealTimers();
   });
 
   test("multiple random conditions", () => {
