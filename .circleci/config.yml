@@ -35,6 +35,15 @@ jobs:
             echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
       - store_test_results:
           path: test-results
+  lint-node:
+    executor: node/default
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Run lint
+          command: npm run lint
 workflows:
   build:
     jobs:
@@ -42,3 +51,6 @@ workflows:
   test:
     jobs:
       - test-node
+  lint:
+    jobs:
+      - lint-node
