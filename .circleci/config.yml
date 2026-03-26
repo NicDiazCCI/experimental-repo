@@ -1,56 +1,70 @@
 version: 2.1
 orbs:
   node: circleci/node@7
+
 jobs:
   build-node:
-    # Build node project
     executor: node/default
     steps:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          cache-path: ~/project/node_modules
+          override-ci-command: npm ci
       - run:
+          name: Typecheck
           command: npm run build
       - run:
-          name: Create the ~/artifacts directory if it doesn't exist
+          name: Create artifacts directory
           command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
       - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
+          name: Copy build artifacts
+          command: cp -R dist ~/artifacts 2>/dev/null || true
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
+
   test-node:
     executor: node/default
+    parallelism: 2
     steps:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          cache-path: ~/project/node_modules
+          override-ci-command: npm ci
       - run:
-          name: Run tests
+          name: Run tests with coverage
           command: |
             mkdir -p test-results
             TEST_FILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}")
-            echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
+            echo "$TEST_FILES" | circleci tests run \
+              --command="xargs npm run test:run -- --coverage --coverageDirectory=coverage --reporter=junit --outputFile=test-results/junit.xml" \
+              --verbose \
+              --split-by=timings
       - store_test_results:
           path: test-results
-  lint-node:
+      - store_artifacts:
+          path: coverage
+          destination: coverage-report
+
+  lint:
     executor: node/default
     steps:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          cache-path: ~/project/node_modules
+          override-ci-command: npm ci
       - run:
-          name: Run lint
+          name: Lint
           command: npm run lint
+
 workflows:
-  build:
+  ci:
     jobs:
       - build-node
-  test:
-    jobs:
-      - test-node
-  lint:
-    jobs:
-      - lint-node
+      - lint
+      - test-node:
+          requires:
+            - build-node
