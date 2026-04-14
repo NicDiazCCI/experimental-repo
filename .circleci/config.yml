@@ -1,56 +1,144 @@
 version: 2.1
+
 orbs:
-  node: circleci/node@7
+  node: circleci/node@6.1.0
+
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:24.14
+    resource_class: medium
+
 jobs:
-  build-node:
-    # Build node project
-    executor: node/default
+  install-dependencies:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - restore_cache:
+          keys:
+            - v1-npm-deps-{{ checksum "package-lock.json" }}
+            - v1-npm-deps-
       - run:
-          command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
-  test-node:
-    executor: node/default
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: v1-npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+
+  lint:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run ESLint
+          command: npm run lint
+
+  test:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
       - run:
           name: Run tests
-          command: |
-            mkdir -p test-results
-            TEST_FILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}")
-            echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
+          command: npm run test -- --ci --coverage --reporters=default --reporters=jest-junit
+          environment:
+            JEST_JUNIT_OUTPUT_DIR: test-results
+            JEST_JUNIT_OUTPUT_NAME: junit.xml
       - store_test_results:
           path: test-results
-  lint-node:
-    executor: node/default
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+
+  build:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: .
       - run:
-          name: Run lint
-          command: npm run lint
+          name: Clean previous build
+          command: npm run clean
+      - run:
+          name: Build TypeScript
+          command: npm run build
+      - store_artifacts:
+          path: dist
+          destination: dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
 workflows:
-  build:
+  version: 2
+  ci:
     jobs:
-      - build-node
-  test:
-    jobs:
-      - test-node
-  lint:
-    jobs:
-      - lint-node
+      - install-dependencies
+      - lint:
+          requires:
+            - install-dependencies
+      - test:
+          requires:
+            - install-dependencies
+      - build:
+          requires:
+            - install-dependencies
+            - lint
+            - test
+
+  # Commented out deploy job stub - configure as needed
+  # deploy:
+  #   jobs:
+  #     - install-dependencies:
+  #         filters:
+  #           branches:
+  #             only: main
+  #     - lint:
+  #         requires:
+  #           - install-dependencies
+  #     - test:
+  #         requires:
+  #           - install-dependencies
+  #     - build:
+  #         requires:
+  #           - install-dependencies
+  #           - lint
+  #           - test
+  #     - deploy-to-production:
+  #         requires:
+  #           - build
+  #         context: production # Add your CircleCI context here
+  #         filters:
+  #           branches:
+  #             only: main
+
+# Commented out deploy job definition - customize for your deployment target
+# jobs:
+#   deploy-to-production:
+#     executor: node-executor
+#     steps:
+#       - checkout
+#       - attach_workspace:
+#           at: .
+#       - run:
+#           name: Deploy
+#           command: |
+#             # Add deployment commands here
+#             # Examples:
+#             # - npm run deploy
+#             # - scp -r dist/ user@server:/path
+#             # - aws s3 sync dist/ s3://bucket-name
+#             # - kubectl apply -f k8s/
+#             echo "Configure deployment commands"
