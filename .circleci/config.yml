@@ -1,56 +1,111 @@
 version: 2.1
+
 orbs:
   node: circleci/node@7
+
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:lts
+    resource_class: medium
+
 jobs:
-  build-node:
-    # Build node project
-    executor: node/default
+  install:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - restore_cache:
+          keys:
+            - node-deps-v1-{{ checksum "package-lock.json" }}
+            - node-deps-v1-
       - run:
-          command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
-  test-node:
-    executor: node/default
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: node-deps-v1-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+            - package.json
+            - package-lock.json
+
+  lint:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: .
       - run:
-          name: Run tests
-          command: |
-            mkdir -p test-results
-            TEST_FILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}")
-            echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
+          name: Run ESLint
+          command: npm run lint
+
+  test:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run tests with Jest
+          command: npm run test
       - store_test_results:
           path: test-results
-  lint-node:
-    executor: node/default
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+
+  build:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: .
       - run:
-          name: Run lint
-          command: npm run lint
+          name: Build TypeScript project
+          command: npm run build
+      - store_artifacts:
+          path: dist
+          destination: build-output
+
+  # Deployment job stub - customize for your deployment target
+  # deploy:
+  #   executor: node-executor
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: Deploy to production
+  #         command: |
+  #           # Add your deployment commands here
+  #           # Examples:
+  #           # - Deploy to AWS: aws s3 sync dist/ s3://your-bucket
+  #           # - Deploy to Vercel: vercel --prod
+  #           # - Deploy to Netlify: netlify deploy --prod
+  #           # - Deploy to Heroku: git push heroku main
+  #           echo "Configure deployment commands here"
+
 workflows:
-  build:
+  ci:
     jobs:
-      - build-node
-  test:
-    jobs:
-      - test-node
-  lint:
-    jobs:
-      - lint-node
+      - install
+      - lint:
+          requires:
+            - install
+      - test:
+          requires:
+            - install
+      - build:
+          requires:
+            - install
+      # - deploy:
+      #     requires:
+      #       - lint
+      #       - test
+      #       - build
+      #     filters:
+      #       branches:
+      #         only: main
