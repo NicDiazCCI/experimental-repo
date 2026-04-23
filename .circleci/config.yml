@@ -1,56 +1,126 @@
 version: 2.1
+
 orbs:
   node: circleci/node@7
+
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:24.15
+    resource_class: medium
+
 jobs:
-  build-node:
-    # Build node project
-    executor: node/default
+  install-dependencies:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - restore_cache:
+          keys:
+            - node-deps-v1-{{ checksum "package-lock.json" }}
+            - node-deps-v1-
       - run:
-          command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
-  test-node:
-    executor: node/default
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: node-deps-v1-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+
+  lint:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: .
       - run:
-          name: Run tests
-          command: |
-            mkdir -p test-results
-            TEST_FILES=$(circleci tests glob "src/**/*.{test,spec}.{js,ts}")
-            echo "$TEST_FILES" | circleci tests run --command="xargs npm run test:run -- --reporter=junit --outputFile=test-results/junit.xml" --verbose
+          name: Run ESLint
+          command: npm run lint
+
+  test:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run tests with coverage
+          command: npm run test:run -- --coverage
       - store_test_results:
           path: test-results
-  lint-node:
-    executor: node/default
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+
+  build:
+    executor: node-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - attach_workspace:
+          at: .
       - run:
-          name: Run lint
-          command: npm run lint
+          name: Build TypeScript project
+          command: npm run build
+      - run:
+          name: Verify build output
+          command: |
+            if [ ! -d "dist" ]; then
+              echo "Build failed: dist directory not found"
+              exit 1
+            fi
+            echo "Build successful: $(find dist -type f | wc -l) files generated"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+      - store_artifacts:
+          path: dist
+          destination: build-output
+
+  # Uncomment and configure the deploy job below when ready to add deployment
+  # deploy:
+  #   executor: node-executor
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: Deploy application
+  #         command: |
+  #           # Add your deployment commands here
+  #           # Examples:
+  #           # - npm run deploy
+  #           # - npx semantic-release
+  #           # - scp -r dist/ user@server:/path/
+  #           # - aws s3 sync dist/ s3://your-bucket/
+  #           echo "Configure deployment commands"
+
 workflows:
-  build:
+  version: 2
+  ci-pipeline:
     jobs:
-      - build-node
-  test:
-    jobs:
-      - test-node
-  lint:
-    jobs:
-      - lint-node
+      - install-dependencies
+      - lint:
+          requires:
+            - install-dependencies
+      - test:
+          requires:
+            - install-dependencies
+      - build:
+          requires:
+            - install-dependencies
+            - lint
+            - test
+      # Uncomment to enable deployment after build succeeds
+      # - deploy:
+      #     requires:
+      #       - build
+      #     filters:
+      #       branches:
+      #         only: main
