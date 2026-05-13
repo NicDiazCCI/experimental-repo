@@ -44,6 +44,15 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
+  # Intentionally references a non-existent Docker image to force the
+  # executor to fail provisioning, which CircleCI tends to classify as
+  # status: infrastructure_fail. Used to test Chunk's handling of that
+  # failure mode.
+  infra-fail-test:
+    docker:
+      - image: cimg/nonexistent-image-for-chunk-infra-fail-test:99.99.99
+    steps:
+      - run: echo "this should never execute"
 workflows:
   build:
     jobs:
@@ -54,3 +63,6 @@ workflows:
   lint:
     jobs:
       - lint-node
+  infra-fail-test:
+    jobs:
+      - infra-fail-test
