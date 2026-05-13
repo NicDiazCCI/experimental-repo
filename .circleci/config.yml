@@ -44,15 +44,24 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
-  # Intentionally references a non-existent Docker image to force the
-  # executor to fail provisioning, which CircleCI tends to classify as
-  # status: infrastructure_fail. Used to test Chunk's handling of that
-  # failure mode.
+  # Test job for Chunk's handling of CircleCI status: infrastructure_fail.
+  # Per https://discuss.circleci.com/t/47282, the control plane marks a
+  # job as infrastructure_fail when it stops receiving heartbeats from
+  # the agent. We provoke that here by severing the executor's outbound
+  # networking once the step is running, leaving the agent unable to
+  # report back. A machine executor is required because iptables needs
+  # root + NET_ADMIN (not available on docker executors).
   infra-fail-test:
-    docker:
-      - image: cimg/nonexistent-image-for-chunk-infra-fail-test:99.99.99
+    machine:
+      image: ubuntu-2204:current
     steps:
-      - run: echo "this should never execute"
+      - run:
+          name: Cut outbound networking to force loss of contact
+          command: |
+            sudo iptables -P OUTPUT DROP
+            sudo iptables -A OUTPUT -o lo -j ACCEPT
+            # Sleep long past the control plane's heartbeat timeout.
+            sleep 3600
 workflows:
   build:
     jobs:
